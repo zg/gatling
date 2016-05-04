@@ -1,0 +1,113 @@
+in libowfat, every descriptor has a state associated with it, and it
+contains a cookie that is set by gatling.  That cookie is a pointer to a
+state gatling uses for the connection.  The libowfat state is invisible
+from gatling; the gatling state is called struct http_data and is
+defined in gatling.h.
+
+Its most important fields are:
+
+  t (the state for gatling's statemachine, type: enum conntype)
+  r (a buffer that holds the incoming request)
+  iob (an iob that holds the outgoing data)
+  buddy (see below)
+
+r is an array (variable length buffer type defined in libowfat)
+iob is a structure from libowfat that holds a linked list of buffers
+and/or file descriptors that are supposed to be sent out over a file
+descriptor.  You can use iob_send to send it directly, or iob_write to
+send it via a write() callback; gatling uses this to send data with SSL
+encryption.
+
+For some requests, more than one connection is needed.  FTP has a
+control and a data connection.  For these, the descriptor of the other
+connection is stored in the buddy member of the http_state.
+
+Here is the state flow for typical requests:
+
+HTTP:
+  # main()
+  - starts out as HTTPSERVER6 or HTTPSERVER4 (IPv4 vs IPv6).
+  - gets a read event if a connection comes in.
+  # accept_server_connection()
+  - calls accept() and makes a new context for that connection,
+    sets its type to HTTPREQUEST
+
+  # main()
+  - gets a read event if data comes in.  Reads until it sees a \r\n\r\n
+    or the size limit is reached (8192 bytes currently)
+    # read events are handled in main() - search for io_canread()
+  # handle_read_misc()
+  # the \r\n\r\n detection is in header_complete()
+  # httpresponse()
+  # http_openfile()
+  - constructs http response header, adds it with iob_addbuf_free
+  - adds file content with iob_addfile 
+  - uses io_dontwantread and io_wantwrite to switch state machine to writing
+
+  # main()
+  - gets a write event
+    # write events are handled in main() - search for io_canwrite()
+  # handle_write_misc()
+  - calls iob_send() (or iob_write() for SSL mode)
+  - repeat from "gets a write event" until all data was written
+  - if client indicated HTTP keep-alive, switch back to HTTPREQUEST and
+    read mode
+    otherwise close connection with cleanup()
+
+
+
+HTTP with CGI:
+  - same as plain HTTP until inside http_openfile().
+  # proxy_connection
+  - check for the ".proxy" file and go through the list of regexes set
+    on command line with -C and -O to see if the request is a CGI or
+    proxy.  Same code used for both.
+
+Now, in addition to the connection from browser to gatling, we need a
+second connection from gatling to the proxy server / CGI.  For proxy
+mode, we just call socket(), but for CGI we use a "fork slave".  gatling
+forks right at the start if CGI mode is enabled, and if we want to
+create a CGI process, we do not create it ourselves (to save the
+overhead of having to close all the open descriptors) but we send a
+message to the "fork slave" we created at the beginning. That process
+then forks and execs the CGI and returns the descriptor to the CGI to us.
+As part of this message, we also pass the HTTP request header to
+the fork slave, which writes it to the CGI.
+
+  # still in proxy_connection
+  - create a new context for the connection to the CGI
+  - change state of http connection from HTTPREQUEST to HTTPPOST
+  - set state of cgi connection to PROXYPOST
+
+if request is a POST:
+  - if some POST data came in with the http request:
+    - put POST data into cgi_connection->r
+    - set cgi_connection->still_to_copy to Content-Length
+    - set http_connection->still_to_copy to Content-Length - sizeof(already copied data)
+    - io_dontwantread(http_connection), io_wantwrite(cgi_connection)
+
+  # main()
+  - receive write event on the cgi connection (PROXYPOST)
+  # handle_write_proxypost
+  - write data from buddy->r to socket, deduct from still_to_copy
+
+
+if request is a GET:
+  - io_dontwantread(http_connection), io_wantread(cgi_connection)
+
+writemoredata:
+  # main()
+  - receive read event on the cgi connection (PROXYPOST)
+  # handle_read_proxypost()
+  # proxy_is_readable()
+  - read data from cgi connection into stack buffer
+  - malloc a buffer for response header plus buffer contents
+  - iob_addbuf_free it to http_connection->iob
+  - io_dontwantread(cgi_connection), io_wantwrite(http_connection)
+
+  # main()
+  - receive write event on the http connection (HTTPPOST)
+  # handle_write_httppost()
+  - iob_write/iob_send data to http connection
+  - if not done: io_dontwantread(http_connection), io_wantread(cgi_connection), goto writemoredata;
+

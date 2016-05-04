@@ -1,0 +1,38 @@
+case `uname -s` in
+  Linux)
+    sysctl -w kernel.threads-max=6000
+    sysctl -w net.ipv4.ip_local_port_range="1024 61000"
+    sysctl -w net.ipv4.tcp_tw_recycle=1
+    sysctl -w net.ipv4.tcp_tw_reuse=1
+    sysctl -w net.ipv4.tcp_fin_timeout=10
+    ;;
+  FreeBSD)
+    sysctl -w kern.maxfiles=11000
+    sysctl -w kern.maxfilesperproc=11000
+    sysctl -w kern.maxproc=6000
+    sysctl -w kern.maxprocperuid=6000
+    sysctl -w net.inet6.ip6.v6only=0
+    sysctl -w net.inet.ip.portrange.first=2000
+    sysctl -w net.inet.ip.portrange.hifirst=2000
+    sysctl -w net.inet.ip.portrange.randomized=0
+    ;;
+  OpenBSD)
+    sysctl -w kern.maxfiles=11000
+    sysctl -w kern.maxproc=6000
+    sysctl -w net.inet6.ip6.v6only=0
+    ;;
+  NetBSD)
+    sysctl -w kern.maxfiles=11000
+    sysctl -w kern.maxproc=6000
+    sysctl -w net.inet6.ip6.v6only=0
+    sysctl -w net.inet.ip.anonportmin=1024
+    sysctl -w net.inet.ip.anonportmax=65535
+    sysctl -w net.inet6.ip6.anonportmin=1024
+    sysctl -w net.inet6.ip6.anonportmax=65535
+    ;;
+  AIX)
+    chdev -l sys0 -a maxuproc=11000
+    no -o tcp_ephemeral_low=1024
+    ;;
+esac
+

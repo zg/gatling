@@ -1,0 +1,114 @@
+.TH gatling 8
+.SH NAME
+gatling \- high performance file server
+.SH SYNOPSIS
+.B gatling [-hnvVtdDfFUlaEe] [-i bind-to-ip] [-p bind-to-port] [-T seconds]
+        \fB[-u uid] [-c dir] [-w workgroup] [-P bytes] [-O [f/]ip/port/regex]\fR
+        \fB[-r redir-url] [-X timeout,sshd]
+.SH DESCRIPTION
+gatling is a HTTP and FTP server.  It will export the current working
+directory to the world.
+
+Use \fB-i 127.0.0.1\fR to only bind to a certain IP address.
+
+Use \fB-p 81\fR to bind HTTP to a different TCP port than 80.  Use \fB-f
+-p 2100\fR to bind FTP to a different TCP port than 21.  When running as
+non-root, the default ports are 8000 and 2121, respectively.
+
+Use \fB-u nobody\fR to run under a different UID than root.  This is
+done after binding the server ports, so it is safe to use -u and still
+bind to port 80 -- in fact, it is recommended not to run gatling as
+superuser.
+
+Use \fB-c /home/www\fR to chdir and chroot to another directory than the
+current working directory.  It is recommended to run gatling in a chroot
+environment to lessen the impact of possible future security problems.
+
+Use \fB-P 2M\fR to activate prefetching mode.  Gatling will then make
+sure this much data is prefetched.  This can reduce disk activity and
+improve throughput dramatically if your OS I/O scheduler is not state of
+the art and you are serving several large files from the same hard disk
+to different downloaders.  Without prefetching, the disk will otherwise
+waste time moving the disk head between the two large files.
+
+Use \fB-f\fR to enable anonymous FTP (default) or \fB-F\fR to disable
+it.  Use \fB-U\fR to disable uploads altogether (normally gatling will
+allow file uploads).  Gatling only allows uploads to world writable
+directories to prevent accidental upload permission, and the files will
+not be world readable (use \fB-a\fR if you want them world readable).
+Gatling will only allow downloads of world readable files, that's why
+this switch is important.  These options are only available if gatling
+is compiled with SUPPORT_FTP defined.
+
+Use \fB-e\fR to enable encryption support (https) or \fB-E\fR to disable
+it.  These options are only available if gatling is compiled with
+SUPPORT_HTTPS defined.
+
+Use \fB-l\fR to make gatling always ask for FTP passwords.  Normally
+gatling does not, which confuses some stupid clients.  This option makes
+gatling ask for (and ignore) a password.
+
+Use \fB-d\fR to enable directory index generation for HTTP (listing
+directories is always possible in FTP), \fB-D\fR to disable.  It is
+harder to accidentally publish a document if the attacker can not find
+out the file name through directory listings.
+
+Use \fB-t\fR to enable transparent proxy mode.  Normally, gatling will
+replace the port in Host: HTTP headers and FTP virtual host names with
+the actual port the connection arrived at.  This is important for
+security (in case you have a secret intranet web site on port 81, which
+is blocked at the firewall).  However, when using a firewall to redirect
+connections to gatling, it may make more sense to keep the ports from
+the HTTP Host: headers for virtual hosting.
+
+Use \fB-v\fR to enable virtual hosting mode, \fR-V\fR to disable it.
+Normally, when a HTTP connection asks for /foo.html and carries a
+"Host: www.fefe.de:80" header, gatling will chdir to "www.fefe.de:80".
+If "www.fefe.de:80" does not exist, gatling will chdir to "default".  If
+this also does not exist, and neither -v or -V are given, gatling will
+serve "foo.html" from the current working directory.
+Specifying -v will make sure that no file is ever served from the
+current working directory, only from the virtual host directories or
+from default.  Specifying -V means that gatling will not try to chdir at
+all and always serve from the current working directory.
+
+Use \fB-T 600\fR to set the timeout for HTTP and FTP data connections to
+10 minutes (600 seconds, default is 23 seconds).  Use \fB-f -T 600\fR to
+set the timeout for FTP control connections (default is 600 seconds).
+
+If you use \fB-r http://master.example.com/\fR on mirror.example.com,
+and someone asks for a file that does not exist, gatling will not create
+a 404 error but a redirect to the same file on master.example.com.
+
+Use \fB-X timeout,sshd\fR to enable SSH passthrough mode.  If someone
+connects on the SSL socket, but does not say anything for \fBtimeout\fR
+(sane value: 2-10) seconds, then gatling will run an sshd in inetd mode
+with that socket.  \fBsshd\fR is the full path name to sshd, plus the
+command line you want to give it, if any.  gatling automatically appends
+-i, so use this for example for -u0 to disable DNS lookups.
+
+Use \fB-O [flag/]ip/port/regex\fR to enable proxy mode, also used for
+SCGI and FastCGI.  To use the proxy mode, there has to be a ".proxy"
+file in the root of the virtual host it is meant for.  Specify ip and
+port to point to your app server, and give a regex to match the URI.
+Note: the regex needs to match the full file name, so use the extension
+for matching.  If no flags are given, HTTP proxying is used.  Otherwise,
+flags specifies the proxying mode: Use S for SCGI and F for FastCGI
+mode.  See README.php for an example.
+
+It is also possible to specify a Unix Domain socket, using the syntax
+-\fB-O [flag/]|filename|regex\fR.  Remember to put the argument in
+quotes when typing it in the shell.
+
+.SH "SIGNALS"
+Sending gatling SIGHUP will make it close all the server sockets (so you
+can start a new gatling process with different options on the same
+ports).  The old gatling process will continue serving the established
+connections until they are all finished.
+
+.SH "AUTHOR"
+Initially written by Felix von Leitner <felix-gatling@fefe.de>.
+
+.SH "LICENSE"
+GPLv2 (see http://www.gnu.org/copyleft/gpl.html) with an exception to
+allow linking against openssl.

@@ -1,0 +1,25 @@
+gatling is a non-forking HTTP server.
+It listens on port 80 when running as root, or port 8000 otherwise.
+You can specify the port with -p, i.e.
+
+  gatling -p 81
+
+to bind to port 81.  Run gatling -h to get a list of supported command
+line options.  Connection Keep-Alive and Pipelining are supported.
+
+Please note:
+
+  a) No HTTP/0.9 support
+
+  b) gatling deliberately _allows_ to leave the file system, as long as
+     the request follows a symbolic link in the process.  That means, if
+     you symlink out of the HTTP file system (and the destination is in
+     the chroot jail), gatling will allow HTTP (and FTP!) users to
+     follow the symlink.  However, following a directory symlink and
+     appending "/../" will not follow the .. directory entry from the
+     target directory of the symlink, as an attacker may hope.
+
+     The idea is to make it easy to create an FTP Server by putting a
+     few symlinks to directories you want to export in an empty
+     directory and starting gatling there.
+

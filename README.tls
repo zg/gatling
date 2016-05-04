@@ -1,0 +1,102 @@
+gatling now has primitive SSL/TLS support using OpenSSL.
+I took the code from the excellent qmail STARTTLS patch.
+No support for much of anything yet, you just get an HTTPS server
+using the certificate in "server.pem" in the gatling root directory.
+
+If you want OpenSSL to verify client certs, put the CA cert in
+"clientca.pem".  If you need a revocation list, use OpenSSL 0.9.7 or
+later, and put it in "clientcrl.pem".
+
+No way to communicate anything about the client cert to CGIs yet.
+
+
+As of Sep 23 2008 gatling has support for ssh passthrough.  The idea is
+the following.  Let's assume you run a server somewhere, and you want to
+SSH to it, but you only get internet access through some restrictive
+proxy firewall that lets you connect to port 443 because that's what
+HTTPS uses.  So you bind a ssh to port 443 on your server.  Now you
+want to run an SSL webserver, too.  It turns out, you can do both!
+For TLS, the client connects and writes something.  For SSH, the client
+connects and expects the server to write something.  So, gatling can
+accept the connection, attempt an SSL handshake, but if the client does
+not write anything for a few seconds, you pass the descriptor on to sshd
+running in inetd mode.  That way, you can transparently use both SSL and
+SSH on the same port.  You still risk losing SSL connections that come
+from very slow connections, so this is not enabled by default.  To
+enable it, run tlsgatling with
+
+  -X "2,/opt/diet/sbin/sshd -u0"
+
+where -X is the option to enable this, 2 is the timeout in seconds, and
+the rest after the comma is the sshd command line you want gatling to
+run.  Note that gatling auto-appends the -i option to this command line,
+so you do not need to specify it here.
+
+PLEASE NOTE: if you are planning to run gatling with SSL in chroot mode,
+you need to make sure the needed files (by the SSL library) are there.
+For example, for openssl, there needs to be a /dev/urandom inside the
+chroot jail.  Typical error message:
+
+  ssl_handshake_error 8 error:140B512D:SSL routines:SSL_GET_NEW_SESSION:ssl session id callback failed
+
+
+
+
+UPDATE 2013-07-01: gatling now supports ephemeral Diffie Hellman to
+enable Perfect Forward Secrecy.  This, in a nutshell, means that if
+someone steals or subpoenas your server to obtain your secret key, they
+can still not decrypt any previous data transfers because those used
+ephemeral (temporary) keys.  Hint: YOU WANT THIS.  The downside is that
+it uses up more CPU time.
+
+You need to do two things to get this to work.  First, generate some
+Diffie Hellman parameters, like so:
+
+  openssl gendh -out dhparams.pem -rand - 2048
+
+Append the resulting dhparams.pem to your server.pem file at the end, or
+store them in a file called dhparams.pem in the same directory as
+server.pem.
+
+Please note that you should also set the OpenSSL ciphers.  As of
+20130907 gatling will do this for you if you don't.  The set gatling
+uses is
+
+  HIGH:!DSS:!RC4:!MD5:!aNULL:!eNULL:@STRENGTH
+
+Note: As of 20140101 gatling is hard-coded to not allow SSLv2 or SSLv3,
+only TLS 1.0 and up.
+
+This cipher string means: Use TLSv1 ciphers with high grade encryption,
+do not allow SSLv2 or SSLv3, insist on TLSv1 or better, do not allow cipher
+suites without authentication or encryption, and sort by strength so the
+strongest common suite between client and server gets selected.
+
+Note that this contains a compromise.  It still allows cipher suites
+without perfect forward secrecy.  This means that if somebody steals the
+secret key from your server, they can decrypt all earlier intercepted
+transmissions that did not have perfect forward secrecy enabled.
+
+You can set ciphers via the environment before running tlsgatling:
+
+  TLSCIPHERS='HIGH:!aNULL:!eNULL:@STRENGTH' tlsgatling [arguments]
+
+If you are using minit and serdo, put this in your script file before
+running tlsgatling:
+
+  export TLSCIPHERS=HIGH:!aNULL:!eNULL:@STRENGTH
+
+If you don't want two files lying around, you can also append the
+contents of dhparams.pem to your server.pem; gatling will also look
+there.
+
+UPDATE 2013-09-07: gatling now defaults to good cipher suites and will
+specify a dhparams for you if you don't.  The Diffie Hellman parameters
+are not a secret key and no harm ought to come from using the ones
+gatling comes with, but it will probably still make you feel better if
+you generate your own.
+
+NOTE: If you use a site like ssllabs.com, it will give you a false
+positive warning that is not actually true.  It says that the server
+does not mitigate the BEAST attack.  If your version of OpenSSL is
+current, this is flat out not true.

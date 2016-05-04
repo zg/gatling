@@ -1,0 +1,12 @@
+bindbench will create many sockets and then bind them to port 0 (i.e.
+tell the operating system to assign a free port to them).
+
+Ideally, this should be a constant time operation, but some
+implementations may implement selecting the smallest free port by
+traversing a list or array.
+
+On i386, bindbench will read the task cycle counter instead of
+gettimeofday and give the results in CPU cycles, not usec.  You can
+divide the numbers by the CPU frequency to get comparable numbers.  As
+there is no portable way to get the CPU frequency, bindbench does not
+even pretend to do this.

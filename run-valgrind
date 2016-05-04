@@ -1,0 +1,1 @@
+valgrind --log-file=/tmp/log --leak-check=yes --show-reachable=yes --leak-resolution=high --num-callers=40 tlsgatling -C+x

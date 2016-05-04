@@ -1,0 +1,138 @@
+0.14:
+  update polarssl support to version 1.2.0 (Roland Stigge)
+  fix cgiproxy_read0 written bytes statistic (was always 0)
+  handle invalid urlencoded sequences by passing them through instead of truncating them
+  fix FIND_NEXT2 in SMB
+  support SMB directory listing in dl
+
+0.13:
+  add SUPPORT_DIR_REDIRECT in gatling_features.h
+  several SCGI and FASTCGI fixes
+  support PolarSSL, see http://www.polarssl.org/
+  remove spurious Content-Range header in 304 HTTP responses
+  fix crash bug on I/O errors inside SSL connections
+  make use of new libowfat API to reduce syscalls
+  fix directory traversal in FTP (Jann Horn)
+
+0.12:
+  close ftp-uploaded files in cleanup() (Johannes Ziemke)
+  fix some bizarre ftp races that caused assertion failures (Johannes Ziemke)
+  look for theora in .ogg files and say they are video/ogg (requires
+    SUPPORT_MIMEMAGIC)
+  fix http ranges for Range: bytes=0-, would trigger 416 before
+    (Sebastian Köhler)
+  win7 does some new strange ioctl call when copying files; return error
+    instead of dropping connection
+  fix off-by-ones in http byte ranges
+
+0.11:
+  add proxy support to dl ($http_proxy and $ftp_proxy like libwww)
+  setuid in the forkslave, too
+  fix the symlink to directory entries (Olaf Dreesen)
+
+0.10:
+  add multi-ranges (only used by the Acrobat Reader plugin AFAIK)
+  abstract out accept() deferment to libowfat (socket_deferaccept)
+  add read-only SMB support
+  add lame anti-DOS support (see README.antidos)
+  sort the other way around in referer
+  dl in http mode now supports cookies and sets the referer
+  add SSH forwarding to SSL support (see README.tls)
+  add matchiprange (see comment at top of matchiprange.c)
+  fix a few CGI problems report by Andreas Stuehrk
+
+0.9:
+  add /server-status
+  request_done, socket_error and cgiproxy_read0 now print the number of
+    received and sent bytes in this request, to make traffic accounting
+    for CGIs and broken downloads possible
+  you can now say -C+x and then all executable files will be run as CGI.
+    Also works for index.html.  Please note that this is dangerous in
+    case you copy or serve files off a FAT or similar filesystem, where
+    Linux per default marks every file executable.  That's why gatling
+    has a simple sanity check that only allows scripts starting with #!
+    or ELF binaries.
+  add "bench", a small benchmark util in the spirit of apachebench
+  make bzip2 support optional (and disable it per default)
+  add Date header
+  add MIME magic (will try to identify file type by looking at first bytes)
+    this is only used if the extension is not conclusive
+  also log the GET arguments in the log for CGI requests
+  allow .htaccess_global
+  dl can now follow 301, 302 and 302
+  fix .gz handling
+  tell download accelerators that we support ranges
+  add acc (convert gatling log to one-line-per-request)
+  add hcat (like cat, but sorts multilog style @[timestamp] filenames
+    right)
+  add referrer (extract nice external referrer statistics from acc
+    output, before or after tai64nlocal)
+  use setresuid and setresgid if available
+  for HEAD, suppress body of error messages (Andreas Krennmair)
+  use radix sort in readfrag instead of qsort for big speedup
+  add support for external mime types file (gatling -m /etc/mime.types)
+  switch to binary mode in dl in FTP mode
+  fix memory leak in proxy_connection() (Johannes Vetter)
+  dl: when printing an ftp directory listing, filter \r
+  dl: in -i mode, don't complain if utime fails
+  attempt to fix POST
+  make dl print some statistics if stderr is a TTY
+
+0.8:
+  fix pipelining bug
+  send all HTTP headers als HTTP_FOO=bar environment to CGIs
+  gcc 4 unsigned char* <-> char* cleanups
+  add temporary fallback redirect (see README.redir)
+  only fork cgi slave if -C is given on command line
+  IRIX compatibility (yuck!)
+
+0.7:
+  use the new scan_urlencoded2 (libowfat cvs); properly serve
+    libstdc++.tar.gz and not 404
+
+0.6:
+  implement ABOR (ncftp was confused after aborting a connection)
+  add https support (using OpenSSL)
+  add primitive .htaccess support
+  fix http ranges (Joachim Berdal Haga via Gerrit Pape, reported for
+    fnord but also applied here)
+
+0.5:
+  CGI-through-proxy support (read README.proxy)
+  SIGHUP will close server sockets but continue serving open requests
+  add man page
+  fix HTTP pipelining fd leak
+  add broken-symlink-redirect like fnord does (read README.redirect)
+  output size in log as 64-bit number
+  add resume support to dl
+  support POST for CGI proxy
+  fix HEAD fd leak (oops)
+  experimental CGI support
+  add -l option to make FTP server ask for password
+    (works around buggy proxy servers, e.g. Genugate)
+
+0.4:
+  add primitive FTP support (default: enabled; disable with -F!)
+  add pipelining support (for both FTP and HTTP)
+
+0.3:
+  add chroot+setuid support
+  compiler warnings removed (Julien Touche)
+  also take time for reaping in forkbench (Niels Provos)
+  fix memory and fd leaks (with Thomas Walpuski)
+
+0.2:
+  zlib support (directory listings only)
+  add timeout support
+  add major kludgery to work around deliberate IPv6 breakage on OpenBSD
+    from that itojun maniac.  Friends don't let friends run OpenBSD!
+  add httpbench
+
+0.1:
+  directory listings
+  HEAD
+  if-modified-since
+  ranges (resume)
+
+0.0:
+  initial checkin, proof-of-concept taken from libowfat test/httpd.c

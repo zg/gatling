@@ -1,0 +1,47 @@
+gatling uses the io and iob interfaces from libowfat and thus exploits
+OS specific performance hacks on the following operating systems:
+
+  Linux 2.4:
+    O(1) event notification scalability through sigio
+    zero-copy TCP via sendfile
+
+  Linux 2.6:
+    O(1) event notification scalability through epoll
+    zero-copy TCP via sendfile
+
+  FreeBSD 4 and 5:
+    O(1) event notification scalability through kqueue
+    zero-copy TCP via sendfile
+
+  NetBSD 2:
+    O(1) event notification scalability through kqueue
+    zero-copy TCP via mmap+write
+
+  OpenBSD 3.4:
+    They have kqueue, but it's not O(1)
+    They don't have sendfile, and to my knowledge their mmap+write is
+      not zero-copy
+
+  HP-UX 11:
+    There were rumours of /dev/poll, but my test box didn't have it.
+    So we have O(n) event notification scalability through poll(2)
+    zero-copy TCP via sendfile
+
+  IRIX 6.5:
+    O(1) event notification scalability through /dev/poll
+    Rumour has it that mmap+write is zero-copy in IRIX.
+    I have no way of knowing, though
+
+  Solaris 9:
+    O(1) event notification scalability through /dev/poll
+    zero-copy TCP via sendfile
+
+  MacOS X:
+    Uses kqueue, but I haven't benchmarked it yet to see if it's O(1)
+    the headers in panther declare sendfile (protected with #if SENDFILE
+    (not #ifdef, #if!)), but libc doesn't have it, and neither does any
+    other library.
+
+  AIX:
+    AIX 5 has send_file.  I am not aware of any way to speed up poll on
+    AIX.

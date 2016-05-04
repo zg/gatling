@@ -1,0 +1,85 @@
+httpbench is a latency measurement tool.
+
+Call it like this:
+
+  ./httpbench -k -c 1000 -i 10 -s 5 http://127.0.0.1:8000/README.httpbench
+
+This means that httpbench should open 500 HTTP connections to
+127.0.0.1:8000, and every 10 connections it should 5 times request "/"
+from the web server there.  The -k tells httpbench to run these 5
+requests over the same TCP connection, using HTTP keep-alive.
+
+The output from httpbench looks something like this:
+
+  connecting to 127.0.0.1 port 8000
+  sample 69 229
+  clat 58
+  clat 59
+  clat 51
+  clat 50
+  clat 52
+  clat 49
+  clat 50
+  clat 50
+  clat 63
+  clat 50
+  sample 50 389
+  [...]
+
+The first line is for informational purposes.
+
+Lines starting with "sample" give two timings, first the latency for
+opening the TCP connection (which should be pretty small unless the web
+server has problems calling accept() as fast as incoming connections
+arrive).  The second is the average latency for writing the HTTP request
+and reading the answer.  The timings are in ?s.
+
+Lines starting with "clat" give the normal TCP connect() latency.  Since
+this does not incur any actual work for the HTTP server (besides getting
+the event and calling accept()), this should be uniformly small.
+
+Here are a few useful command lines to plot this with gnuplot:
+
+  plot "linux.log" using ($2) title "Linux 2.6: connect latency" with histeps
+
+  plot "linux.log" using ($3) title "Linux 2.6: response latency" with histeps
+
+httpbench can also be used to measure throughput.  To do that, run it
+with -c 1 and give the URL to a large file (an ISO image or movie file >
+100 MB is good).  The output will look something like this:
+
+  connecting to 127.0.0.1 port 80
+  tput 21414
+  tput 25054
+  tput 25473
+  tput 13086
+  tput 22462
+  tput 110
+  tput 25104
+  tput 23306
+  tput 25026
+  tput 25067
+  tput 25453
+  tput 22296
+  tput 25709
+  tput 25394
+  tput 25141
+  tput 23719
+  tput 24419
+  tput 25089
+  tput 25459
+  tput 23715
+  tput 24156
+  tput 25413
+  tput 24975
+  tput 23840
+  tput 24563
+  tput 25072
+  tput 25451
+  [...]
+
+This is from my external firewire hard disk over the loopback interface.
+There will be one tput line per megabyte downloaded.  The number is
+1000000000 divided by the number of ?sec it took to download this
+megabyte, i.e. the average number of kilobytes per second.
+

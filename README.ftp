@@ -1,0 +1,59 @@
+gatling now also speaks FTP, and it is enabled per default.
+Disable it with -F.
+
+Working around itojun's disabled IPv4-mapped IPv6 addresses is even
+worse for FTP than it is for HTTP.  I'm not going to waste my time on
+this for now.  Please ask itojun himself to prove how "easy" or even
+"trivial" it is to do this, as he always claims it is.
+
+Like HTTP will bind to port 80 if running as root, or 8000 otherwise,
+FTP will bind to port 21 and 2121.  To specify the FTP port, use
+-f -p [port].  Example:
+
+  gatling -p 81 -f -p 2100
+
+would run a HTTP server on port 81 and an FTP server on port 2100.  For
+now, HTTP and FTP will always bind to the same IP number.
+
+Please note:
+
+  a) No TELNET sequences.
+     These are _really_ obsolete, a pain in the ass to implement, and
+     have even been used as means to avoid intrusion detection systems
+     due to the obscurity.
+
+  b) The path checking deliberately _allows_ to leave the file system,
+     as long as you follow a symbolic link in the process.  That means,
+     if you symlink out of the FTP file system (and the destination is in
+     the chroot jail), gatling will allow FTP (and HTTP!) users to
+     follow the symlink.  However, following a directory symlink and
+     appending "/../" will not follow the .. directory entry from the
+     target directory of the symlink, as an attacker may hope.
+
+     The idea is to make it easy to create an FTP Server by putting a
+     few symlinks to directories you want to export in an empty
+     directory and starting gatling there.
+
+  c) Like for HTTP, gatling will do virtual hosting, i.e. if the client
+     connected to IP 10.1.1.23 on port 21, gatling will look for the
+     exported data in the directory "10.1.1.23:21".
+
+  d) gatling will not let users download files that are not world
+     readable, even if the permissions would normally allow the gatling
+     process to read the files.  This is to prevent accidental
+     publication of sensitive files.
+
+  e) gatling accepts uploads per anonymous FTP, but only to directories
+     that are world writable.  Since there normally are no world
+     writable directories, this should not pose much of a threat to
+     anyone.  Please note that the files are created with mode 600,
+     which means gatling will not let others download uploaded files, so
+     it cannot be exploited as warez dump.
+
+     You can disable uploads altogether with -U, or you can allow
+     anonymous downloaders to download just uploaded files with -a.
+
+  f) gatling's directory listings will always claim files are owned by
+     root.  The local accounts on FTP sites are ignored by software and
+     not normally useful to outsiders anyway, but revealing them may
+     expose more of your organisation to FTP users than you want.

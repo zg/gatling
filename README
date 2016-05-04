@@ -1,0 +1,7 @@
+This is an experimental web server, meant to demonstrate how to write a
+scalable web server using the IO and IOB API from libowfat
+(http://www.fefe.de/libowfat/).
+
+To compile this, you will need the current libowfat version, probably
+even the current CVS version.
+

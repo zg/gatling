@@ -1,0 +1,24 @@
+mmapbench will take one file as argument on the command line.
+It will then map ever second page of the file, "count" times.
+count is 25000 per default, (i.e. 100 megs are mapped, the file needs to
+be at least 200 megs large).
+
+The program will then prime the cache and read a few bytes from every
+page that is mmapped later on, to make sure the pages are in the buffer
+cache.
+
+mmapbench will then mmap every other page and measure the latency of
+that, and it will then read a byte of the page, which should force a
+page fault in the OS and cause the OS to actually map the page to
+memory.
+
+On i386, mmapbench will read the task cycle counter instead of
+gettimeofday and give the results in CPU cycles, not usec.  You can
+divide the numbers by the CPU frequency to get comparable numbers.  As
+there is no portable way to get the CPU frequency, mmapbench does not
+even pretend to do this.
+
+NOTE: if you get a bus error, you gave too small a file as argument.
+The default settings from run-bench assume a file (or block device!) at
+least 160 MB.  So the easiest way is to just point mmapbench to your
+root partition, or use dd to create a large new file.

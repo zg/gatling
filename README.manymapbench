@@ -1,0 +1,25 @@
+manymapbench will mmap the first page of many small files.  This is what
+mmapbench was supposed to approximate, but I am told that it does not,
+but it triggers the worst case of an optimization in the BSD VM instead.
+
+You are supposed to create the data by running ./mktestdata instead,
+with the same -c argument.  Please note that manymapbench does not prime
+the cache first, so please run it twice and disregard the output of the
+first run.
+
+manymapbench will output three numbers in each line, for example
+
+  6753 2338 3094
+
+The first number is the latency for opening the file (probably not
+useful, but measuring it does not cost anything).  The second number is
+the latency for mmapping the page.  The third number is the latency for
+reading one byte on the page (which ought to trigger a page fault unless
+the VM reads the page anyway if it encompasses the whole file, which
+Linux 2.6 does, judging from the number in this example).
+
+On i386, manymapbench will read the task cycle counter instead of
+gettimeofday and give the results in CPU cycles, not usec.  You can
+divide the numbers by the CPU frequency to get comparable numbers.  As
+there is no portable way to get the CPU frequency, manymapbench does not
+even pretend to do this.

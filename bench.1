@@ -1,0 +1,34 @@
+.TH bench 8
+.SH NAME
+bench \- http benchmark
+.SH SYNOPSIS
+.B bench [-n requests] [-c concurrency] [-t timeout] [-k] [-K count]
+        \fB[-C cookie-file] [http://]host[:port]/uri
+.SH DESCRIPTION
+bench is a HTTP benchmark program that can fetch the same URL over and
+over again, or fetch several URLs (coming in from stdin).
+
+If you specify a URL on the command line, this URL will be fetch many
+times (specify with -n, default: 10000) with several connections open in
+parallen (specify with -c, default: 10).
+
+You can specify a timeout (per request) in seconds with -t.
+
+The -k switch activates keep-alive mode.  In keep-alive mode, the TCP
+connection is not closed between requests.  You also have to specify how
+many HTTP requests can go over one TCP connection with -K.
+
+bench can also send one HTTP cookie per connection, as specified using a
+cookie file.  The cookie file is read line by line, and each request
+gets the next line inserted into it.  So each line should look something
+like this:
+
+  Cookie: foo=bar
+
+If the end of the file is reached, bench restarts it at the beginning.
+
+.SH "AUTHOR"
+Initially written by Felix von Leitner <felix-gatling@fefe.de>.
+
+.SH "LICENSE"
+GPLv2 (see http://www.gnu.org/copyleft/gpl.html)

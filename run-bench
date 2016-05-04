@@ -1,0 +1,33 @@
+OS=`uname -s | tr A-Z a-z`
+VERSION=`uname -r | sed 's/\([0-9]\)\.\([0-9]\).*/\1\2/'`
+TAG=$OS$VERSION
+ulimit -Hn 11000
+ulimit -n 11000
+if ! test -f ${1:-fnord};
+  then
+  echo "give a file name for mmapbench as argument!"
+  exit 0
+fi
+for i in 1 2 3 4 5; do
+  echo pass $i: running mmapbench
+  ./mmapbench -c 10000 $1 > mmap-$TAG-$i.log
+  sleep 1
+  echo pass $i: running IPv6 bindbench
+  ./bindbench -6 -c 10000 > bind6-$TAG-$i.log
+  sleep 1
+  echo pass $i: running IPv4 bindbench
+  ./bindbench -c 10000 > bind4-$TAG-$i.log
+  sleep 1
+  echo pass $i: running forkbench
+  ./forkbench -c 3000 > fork-$TAG-$i.log
+  sleep 1
+  echo pass $i: running forksbench
+  ./forksbench -c 3000 > forks-$TAG-$i.log
+  sleep 1
+  echo pass $i: running httpbench
+  ./httpbench -k -c 5000 -i 10 -s 5 http://127.0.0.1/README.httpbench > httpa-$TAG-$i.log
+  sleep 1
+  echo pass $i: running httpbench -b
+  ./httpbench -b -k -c 5000 -i 10 -s 5 http://127.0.0.1/README.httpbench > httpb-$TAG-$i.log
+  sleep 1
+done

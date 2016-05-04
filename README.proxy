@@ -1,0 +1,32 @@
+gatling has primitive CGI support which is implemented as a proxy.
+
+The idea is that you specify a regex and an ip and a port.  If the regex
+matches the requested URL, gatling will not answer the query itself but
+make a TCP connection to the ip and the port.  So, in effect, gatling
+can be used to quickly serve static data but let someone else (an Apache
+maybe) serve the Java servlets.
+
+In my tests I used fnord as backend to run a CGI program.  This ought to
+combine the best of all worlds.
+
+For testing, run gatling like this:
+
+  ./gatling -O 127.0.0.1/8023/cgi$
+
+And then run fnord in the same directory like this:
+
+  tcpserver -v -u `id -u nobody` -RHl localhost 0 8023 fnord-cgi
+
+Another idea I have is to not relay the requests synchronously but
+through a request pool.  If there are more requests than slots in the
+pool, gatling could prioritize the requests through an external program.
+My current idea is that gatling would run an external program (think:
+perl) that would get peer IP address and HTTP request on stdin and write
+a priority on stdout.
+
+You can have more than one -O statement.  The first matching will always
+be used.  So you can have one backend for .jsp and a different one for
+.cgi.
+
+This CGI proxy mode will only be used if the file ".proxy" exists in the
+root of the virtual server.

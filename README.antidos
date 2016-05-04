@@ -1,0 +1,16 @@
+gatling now supports some anti denial of service code.
+
+You can set a limit of how often each IP can request files from gatling
+per minute.  gatling will then keep book about which IPs had how many
+requests in the last minute, and if someone exceeds that limit, they
+will only be allowed back in if they did not request anything for a
+whole minute.
+
+If someone gets caught at DOSsing you, their connection will be
+tarpitted.  If gatling is run in no-timeout mode, the connection is
+dropped immediately instead.  The idea behind the tarpit is to stop
+accidental flooding (if we drop the connection, we might make an
+accidental flood worse due to immediate retry).  On the down side the
+tarpit allows others to consume resources on our box.  So it is still a
+denial of service on our resources if someone opens a lot of connections
+against us, because the state for the connections wastes our memory.

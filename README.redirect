@@ -1,0 +1,32 @@
+gatling can do HTTP redirects.
+
+To do it, create a symlink like this:
+
+  $ ln -s http://www.google.com/ search.html
+
+Then, if someone tries to access search.html via HTTP, gatling will
+detect the special broken symlink and send the user a HTTP redirect to
+www.google.com.
+
+To redirect an URL ending in /, create that directory and create a
+symlink as above for index.html.
+
+
+
+UPDATE: gatling can now also do fallback redirects.  If you have a farm
+of mirrors, all replicating off a central one, you can tell gatling to
+not generate 404s on the mirrors, but redirects.
+SUPPORT_FALLBACK_REDIRECT must be #defined in gatling.c for this to be
+compiled in.
+
+If, for example, you run on your mirror machine
+
+  gatling -r http://fallback.example.com
+
+and someone requests
+
+  http://mirror.example.com/notyetuploaded.html
+
+gatling will generate a temporary redirect to
+
+  http://fallback.example.com/notyetuploaded.html

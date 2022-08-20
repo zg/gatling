@@ -531,7 +531,7 @@ char* sshd;
 unsigned long ssh_timeout;
 #endif
 
-int limit_to_lan;
+int limit_to_lan=0;
 
 static void accept_server_connection(int64 i,struct http_data* H,unsigned long ftptimeout_secs,tai6464 nextftp) {
   /* This is an FTP or HTTP(S) or SMB server connection.
@@ -603,17 +603,20 @@ static void accept_server_connection(int64 i,struct http_data* H,unsigned long f
     if (limit_to_lan) {
       int passed;
       /* if the -L option is given, only accept connections from local
-       * or reserved IP ranges */
+       * or reserved IP ranges.
+       * With -LL, only localhost is allowed*/
       if (byte_equal(ip,12,V4mappedprefix)) {
 	unsigned char* ip4=(unsigned char*)ip+12;
-	passed = ip4[0]==127 ||	/* 127.0.0.1/8 */
+	passed = ip4[0]==127;
+        if (limit_to_lan < 2) passed = passed ||	/* 127.0.0.1/8 */
 	    ip4[0]==10 ||	/* RFC1918: 10.0.0.0/8 */
 	    (ip4[0]==192 && ip4[1]==168) ||	/* RFC1918: 192.168.0.0/16 */
 	    (ip4[0]==172 && ip4[1]>=16 && ip4[1]<=31) ||	/* RFC1918: 172.16.0.0/12 */
 	    (ip4[0]==169 && ip4[1]==254 && ip4[2]!=0 && ip4[2]!=255);	/* RFC 5735: 169.254.0.0/16 */
       } else {	/* IPv6 */
 	unsigned char* ip6=(unsigned char*)ip;
-	passed = byte_equal(ip6,16,V6loopback) ||	/* ::1 */
+	passed = byte_equal(ip6,16,V6loopback); 	/* ::1 */
+	if (limit_to_lan < 2) passed = passed ||
 	  (ip6[0]==0xfc && (ip6[1]&0xfe)==0) ||	/* RF4193 ULA fc00::/7 */
 	  (ip6[0]==0xfe && (ip6[1]&0xfc)==0xc0) ||	/* deprecated site-local */
 	  (ip6[0]==0xfe && (ip6[1]&0xfc)==0x80);	/* RFC5735 link-local */
@@ -1559,7 +1562,7 @@ int main(int argc,char* argv[],char* envp[]) {
     if (c==-1) break;
     switch (c) {
     case 'L':
-      limit_to_lan=1;
+      limit_to_lan+=1;
       break;
     case 'U':
       nouploads=1;
@@ -1768,6 +1771,7 @@ usage:
 		  "\t-r url\tinstead of a 404, generate a redirect to url+localpart\n"
 #endif
 		  "\t-L\tonly accept connections from localhost or link/site local reserved IP addresses\n"
+		  "\t-LL\tonly accept connections from localhost\n"
 		  );
       return 0;
     }
